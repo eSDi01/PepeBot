@@ -1,50 +1,58 @@
 # -*- coding: cp1251 -*-
-from telethon.sync import TelegramClient, events
-from telethon.tl.custom.message import Message
+import asyncio
+import os
+import sys
 
-api_id = ''
-api_hash = ''
-token = ''
+from pathlib import Path
+from dotenv import load_dotenv
 
-client = TelegramClient('name', api_id, api_hash).start(bot_token=token)
+from telethon.sync import TelegramClient
 
+import plugins.schedule as schedule
 
-@client.on(events.NewMessage(pattern='/all'))
-async def handler(event):
-    sender = await event.get_sender()
+try:
+    import plugins
+except ImportError:
+    try:
+        from . import plugins
+    except ImportError:
+        print('could not load the plugins module, does the directory exist '
+              'in the correct location?', file=sys.stderr)
 
-    channel = await event.get_chat()
-    users = client.iter_participants(channel)
-    answ = ''
-    i = 0
-    mention = ''
-    async for user in users:
-        if not user.bot:
-            i += 1
-            if user.username:
-                mention += f'[@{user.username}](tg://user?id={user.id}) '
-            else:
-                mention += f'[@{user.first_name}](tg://user?id={user.id}) '
-            if i >= 5:
-                mention = mention.rstrip()
-                await client.send_message(
-                    entity=event.peer_id,
-                    message=mention)
-                i = 0
-                mention = ''
-    if mention != '':
-        mention = mention.rstrip()
-        await client.send_message(
-            entity=event.peer_id,
-            message=mention)
+        exit(1)
 
+BASE_DIR = Path(__file__).resolve().parent
 
-@client.on(events.NewMessage(pattern='/test'))
-async def handler(event: Message):
-    sender = await event.message.from_id.user_id
-    print(sender)
-    channel = await event.get_chat()
+dotenv_path = os.path.join(BASE_DIR, '.env')
+
+if not os.getenv('ACTIONS'):
+    if os.path.exists(dotenv_path):
+        load_dotenv(dotenv_path)
+    else:
+        with open('.env', 'w') as env:
+            env.write('API_ID=\n'
+                      'API_HASH=\n'
+                      'TOKEN=')
+        raise Exception('You need to fill in the .env file')
+
+API_ID = int(os.getenv('API_ID'))
+API_HASH = os.getenv('API_HASH')
+TOKEN = os.getenv('TOKEN')
+NAME = TOKEN.split(':')[0]
 
 
-client.run_until_disconnected()
+async def main():
+    client = TelegramClient(NAME, API_ID, API_HASH)
 
+    await client.start(bot_token=TOKEN)
+
+    try:
+        await plugins.init(client)
+        await client.run_until_disconnected()
+    finally:
+        await client.disconnect()
+
+
+if __name__ == '__main__':
+    schedule.main()
+    asyncio.run(main())

@@ -1,4 +1,3 @@
-# -*- coding: cp1251 -*-
 import asyncio
 import os
 import sys
@@ -7,8 +6,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from telethon.sync import TelegramClient
-
-import plugins.schedule as schedule
 
 try:
     import plugins
@@ -54,5 +51,4 @@ async def main():
 
 
 if __name__ == '__main__':
-    schedule.main()
     asyncio.run(main())

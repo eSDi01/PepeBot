@@ -1,4 +1,3 @@
-# -*- coding: cp1251 -*-
 import asyncio
 import os
 
@@ -15,12 +14,10 @@ from telethon.tl.types import ChannelParticipantsAdmins
 from telethon.client.telegramclient import TelegramClient
 from telethon.tl.custom.button import Button
 
-channel_group = {}
-today = date.today()
 
+def load_file():
+    channel_group = {}
 
-def main():
-    global today, channel_group
     base_dir = Path(__file__).resolve().parent.parent
 
     channel_group_path = os.path.join(base_dir, 'channel_group.dat')
@@ -29,22 +26,14 @@ def main():
         with open(channel_group_path, 'rb') as file:
             reader = pickle.load(file)
             channel_group = reader
-            # for channel, group in reader.items():
-            #     channel_group[channel] = group
     else:
         with open(channel_group_path, 'wb') as file:
             pickle.dump(dict(), file)
 
-    today = date.today()
-
-    # start_week = today - timedelta(days=today.weekday())
-    # start_week = date(start_week.year, start_week.month, start_week.day)
-    # end_week = start_week + timedelta(days=6)
-    # end_week = date(end_week.year, end_week.month, end_week.day)
+    return channel_group
 
 
-def save_file():
-    global channel_group
+def save_file(channel_group):
     base_dir = Path(__file__).resolve().parent.parent
     channel_group_path = os.path.join(base_dir, 'channel_group.dat')
 
@@ -67,14 +56,14 @@ def save_file():
 async def init(client: TelegramClient):
     @client.on(events.NewMessage(pattern=r'(?i)/addGroupSchedule\b'))
     async def handler(event):
-        global channel_group
+        channel_group = load_file()
 
         sender_id = event.message.from_id.user_id
         sender = await client.get_entity(sender_id)
 
         channel = await event.get_chat()
 
-        admins = client.iter_participants(channel, filter=ChannelParticipantsAdmins)
+        admins = client.iter_participants(channel, filter=ChannelParticipantsAdmins())
 
         is_admin = False
 
@@ -103,44 +92,46 @@ async def init(client: TelegramClient):
                                 continue
                         buttons.append([Button.inline(json_group[i]['label'],
                                                       f'g{group_id}:{json_group[i]["label"]}')])
-                    buttons.append([Button.inline('Отмена', b'cansel')])
+                    buttons.append([Button.inline('РћС‚РјРµРЅР°', b'cansel')])
                     await client.send_message(
                         entity=event.peer_id,
-                        message='Выберите группу:',
+                        message='Р’С‹Р±РµСЂРёС‚Рµ РіСЂСѓРїРїСѓ:',
                         buttons=buttons)
                 else:
                     result = await client.send_message(
                         entity=event.peer_id,
-                        message='Не найдено ни одной группы')
+                        message='РќРµ РЅР°Р№РґРµРЅРѕ РЅРё РѕРґРЅРѕР№ РіСЂСѓРїРїС‹')
                     asyncio.create_task(sleep_del(channel, result.id))
             else:
                 result = await client.send_message(
                     entity=event.peer_id,
-                    message='Команда не соответствует конструкции /addgroupschedule <Название группы>')
+                    message='РљРѕРјР°РЅРґР° РЅРµ СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓРµС‚ РєРѕРЅСЃС‚СЂСѓРєС†РёРё\n' 
+                            '/addgroupschedule <РќР°Р·РІР°РЅРёРµ РіСЂСѓРїРїС‹>')
                 asyncio.create_task(sleep_del(channel, result.id))
 
     async def sleep_del(channel, msg_id):
         time.sleep(3)
         await client.delete_messages(entity=channel.id, message_ids=msg_id)
 
-    @client.on(events.CallbackQuery)
+    @client.on(events.CallbackQuery())
     async def iquery(event):
-        global channel_group
+        channel_group = load_file()
 
         sender_id = event.sender.id
         channel = await event.get_chat()
-        admins_ids = [admin.id async for admin in client.iter_participants(channel, filter=ChannelParticipantsAdmins)]
+        admins_ids = [admin.id async for admin in client.iter_participants(channel, filter=ChannelParticipantsAdmins())]
 
         data = event.data.decode('UTF-8')
         if data[0] == 'g' and sender_id in admins_ids:
             group_id = data.split(':')[0][1:]
             group_name = data.split(':')[1]
+
             if not str(channel.id) in channel_group:
                 channel_group[str(channel.id)] = dict()
             channel_group[str(channel.id)][group_id] = group_name
 
             await client.delete_messages(entity=channel.id, message_ids=event.message_id)
-            save_file()
+            save_file(channel_group)
 
         if data[0] == 'd' and sender_id in admins_ids:
             group_id = data.split(':')[0][1:]
@@ -149,20 +140,20 @@ async def init(client: TelegramClient):
                 del channel_group[str(channel.id)]
 
             await client.delete_messages(entity=channel.id, message_ids=event.message_id)
-            save_file()
+            save_file(channel_group)
 
         if data == 'cansel' and sender_id in admins_ids:
             await client.delete_messages(entity=channel.id, message_ids=event.message_id)
 
     @client.on(events.NewMessage(pattern=r'(?i)/showSchedule\b'))
     async def handler(event):
-        global today, channel_group
+        today = date.today()
 
         await show_schedule(client, event, today)
 
     @client.on(events.NewMessage(pattern=r'(?i)/showTomSchedule\b'))
     async def handler(event):
-        global today, channel_group
+        today = date.today()
 
         await show_schedule(client, event, f_tom(today))
 
@@ -170,23 +161,23 @@ async def init(client: TelegramClient):
     async def handler(event):
         sender_id = event.message.from_id.user_id
         channel = await event.get_chat()
-        admins_ids = [admin.id async for admin in client.iter_participants(channel, filter=ChannelParticipantsAdmins)]
+        admins_ids = [admin.id async for admin in client.iter_participants(channel, filter=ChannelParticipantsAdmins())]
 
         if (sender_id in admins_ids) and not event.sender.bot:
-            global channel_group
+            channel_group = load_file()
             buttons = []
             for group_id, group_name in channel_group[str(channel.id)].items():
                 buttons.append([Button.inline(group_name, f'd{group_id}:{group_name}')])
             if len(buttons) > 0:
-                buttons.append([Button.inline('Отмена', b'cansel')])
+                buttons.append([Button.inline('РћС‚РјРµРЅР°', b'cansel')])
                 await client.send_message(
                     entity=event.peer_id,
-                    message='Выберите группу:',
+                    message='Р’С‹Р±РµСЂРёС‚Рµ РіСЂСѓРїРїСѓ:',
                     buttons=buttons)
             else:
                 result = await client.send_message(
                     entity=event.peer_id,
-                    message='Не найдено ни одной группы')
+                    message='РќРµ РЅР°Р№РґРµРЅРѕ РЅРё РѕРґРЅРѕР№ РіСЂСѓРїРїС‹')
                 asyncio.create_task(sleep_del(channel, result.id))
 
 
@@ -196,10 +187,10 @@ async def show_schedule(client, event, day):
     admins_ids = [admin.id async for admin in client.iter_participants(channel, filter=ChannelParticipantsAdmins)]
 
     if (sender_id in admins_ids) and not event.sender.bot:
+        channel_group = load_file()
+
         if day.isoweekday() > 6:
             day = f_tom(day)
-        else:
-            day = day
 
         start_week = day - timedelta(days=day.weekday())
         end_week = start_week + timedelta(days=6)
@@ -215,7 +206,7 @@ async def show_schedule(client, event, day):
                     f'{end_week.strftime("%m")}.{end_week.strftime("%d")}&lng=1')
                 json = r.json()
 
-                schedule = [lesson for lesson in json if date_comparison(today, lesson)]
+                schedule = [lesson for lesson in json if date_comparison(day, lesson)]
 
                 lesson_count = 0
 
@@ -232,7 +223,7 @@ async def show_schedule(client, event, day):
 
 def text_lesson(json_lesson):
     return f'\U0001F552{json_lesson["beginLesson"]}-{json_lesson["endLesson"]}\n\n' \
-           f'\U0001F465{json_lesson["group"] or json_lesson["subGroup"] or "Поток"}\n' \
+           f'\U0001F465{json_lesson["group"] or json_lesson["subGroup"] or "РџРѕС‚РѕРє"}\n' \
            f'\U0001F4DD{json_lesson["discipline"]} ({json_lesson["kindOfWork"]})\n' \
            f'\U0001F6AA{json_lesson["auditorium"]} ({json_lesson["building"]})\n' \
            f'\U0001F464{json_lesson["lecturer"]}\n'

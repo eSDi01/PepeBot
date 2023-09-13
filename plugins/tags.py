@@ -22,7 +22,7 @@ async def send_tags(client, event, tags) -> None:
 
 
 async def init(client) -> None:
-    @client.on(events.NewMessage(pattern=r'/all$'))
+    @client.on(events.NewMessage(pattern=r'(?i)/all$'))
     async def handler(event):
         sender_id = event.message.from_id.user_id
         channel = await event.get_chat()
@@ -32,7 +32,7 @@ async def init(client) -> None:
             users = client.iter_participants(channel)
             await send_tags(client, event, await create_list_users(users))
 
-    @client.on(events.NewMessage(pattern=r'/allAdmins$'))
+    @client.on(events.NewMessage(pattern=r'(?i)/allAdmins$'))
     async def handler(event):
         channel = await event.get_chat()
 

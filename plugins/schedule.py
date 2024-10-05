@@ -95,16 +95,19 @@ async def init(client: TelegramClient):
                     buttons.append([Button.inline('Отмена', b'cansel')])
                     await client.send_message(
                         entity=event.peer_id,
+                        reply_to=event.reply_to_msg_id,
                         message='Выберите группу:',
                         buttons=buttons)
                 else:
                     result = await client.send_message(
                         entity=event.peer_id,
+                        reply_to=event.reply_to_msg_id,
                         message='Не найдено ни одной группы')
                     asyncio.create_task(sleep_del(channel, result.id))
             else:
                 result = await client.send_message(
                     entity=event.peer_id,
+                    reply_to=event.reply_to_msg_id,
                     message='Команда не соответствует конструкции\n' 
                             '/addgroupschedule <Название группы>')
                 asyncio.create_task(sleep_del(channel, result.id))
@@ -172,11 +175,13 @@ async def init(client: TelegramClient):
                 buttons.append([Button.inline('Отмена', b'cansel')])
                 await client.send_message(
                     entity=event.peer_id,
+                    reply_to=event.reply_to_msg_id,
                     message='Выберите группу:',
                     buttons=buttons)
             else:
                 result = await client.send_message(
                     entity=event.peer_id,
+                    reply_to=event.reply_to_msg_id,
                     message='Не найдено ни одной группы')
                 asyncio.create_task(sleep_del(channel, result.id))
 
@@ -218,6 +223,7 @@ async def show_schedule(client, event, day):
 
         await client.send_message(
             entity=event.peer_id,
+            reply_to=event.reply_to_msg_id,
             message=msg)
 
 

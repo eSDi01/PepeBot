@@ -16,8 +16,10 @@ async def create_list_users(users) -> list[str]:
 async def send_tags(client, event, tags) -> None:
     for i in range(0, len(tags), 5):
         msg = ' '.join(tags[i:i + 5])
+        reply_to = event.id
         await client.send_message(
             entity=event.peer_id,
+            reply_to=event.reply_to_msg_id,
             message=msg)
 
 

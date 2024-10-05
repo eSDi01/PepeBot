@@ -6,6 +6,7 @@ async def init(client) -> None:
     async def handler(event):
         await client.send_message(
             entity=event.peer_id,
+            reply_to=event.reply_to_msg_id,
             message=f'/all - Тэгает всех пользователей канала. Доступно только админам.\n'
                     f'/alladmins - Тэгает всех админов канала\n'
                     f'/addGroupSchedule <Название группы> - '
